@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+shopt -s nullglob nocaseglob
+
+# modern bash version check
+! [ "${BASH_VERSINFO:-0}" -ge 4 ] && echo "This script requires bash v4 or later" && exit 1
+
+# path to self and parent dir
+SCRIPT=$(realpath $0)
+SCRIPTPATH=$(dirname $SCRIPT)
+
+# check for lima binary
+if ! command -v limactl &> /dev/null
+then
+    echo "limactl could not be found"
+    echo "Install lima from https://lima-vm.io/docs/installation/"
+    exit 1
+fi
+
+# build the plucky image
+if [ -f ~/.lima/plucky/lima.yaml ]; then
+  limactl stop -f plucky || true
+  echo "limactl factory-reset plucky"
+  limactl factory-reset plucky
+  cp "${SCRIPTPATH}/plucky.yaml" ~/.lima/plucky/lima.yaml
+else
+  echo "limactl create --name=plucky plucky.yaml --tty=false"
+  limactl create --name=plucky plucky.yaml --tty=false
+fi
+
+# start the instance and build the image
+echo "limactl start plucky"
+limactl start plucky
+
+exit 0
